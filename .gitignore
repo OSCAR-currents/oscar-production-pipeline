@@ -1,0 +1,7 @@
+#*******************************************************************************
+#.gitignore
+#*******************************************************************************
+
+#Purpose:
+#The git program is informed here to ignore the following files while performing
+#its distributed revision control and source code management.
