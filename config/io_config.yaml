@@ -1,0 +1,32 @@
+# === General Settings ===
+
+general:
+
+  start_date: "2024-11-15"
+  end_date: "2024-11-30"
+
+  ssh_mode: 'cmems' #options: cmems, neurost
+
+  overwrite_download: false 
+#if we want to redownload the data even if already has been in the past
+#if false, it will still try to download final data even if interim has been downloaded in the past. If final not available and interim already downloaded it won't redownload interim
+#if true, it will redownload final and/or interim whether it has been already downloaded or not
+
+  overwrite_current: false 
+#if we want to recompute the final currents even if already has been in the past 
+#cannot be false if overwrite_download is true
+#if false, it will not recompute the final currents that exist already but it will still recompute currents that are currently interim (should be changed to: only compute currents that were interim if final input files are available)
+#if true, it will recompute currents whether the output file already exists or not
+
+  do_intermediate_checks: false # to make daily plots of interpolated SSH, SST, winds fields and SSH and SST gradients
+
+  plot_currents: false
+
+  do_validation: true
+
+  do_eq: true #equatorial treatment for current computation
+
+
+plot_currents:
+
+  region: "global" #options: gulf_stream, indian_ocean, caribbean, global, australia_nz
