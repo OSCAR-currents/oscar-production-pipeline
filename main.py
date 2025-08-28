@@ -117,9 +117,8 @@ def run_plotting(dates,oscar_mode):
 
     for d in range(0,len(dates)):
         ds_path= get_file_path(dates[d],oscar_mode[d])
-
-        if not os.path.exists(ds_path):
-            print(f'Current file not found: {ds_path}\n')
+        if not ds_path:
+            print(f'Current file not found for: {dates[d]}')
             continue
         save_dir = os.path.join(FIG_DIR, SSH_MODE.upper(), REGION)
         os.makedirs(save_dir, exist_ok=True)
@@ -165,13 +164,13 @@ def run_validation(dates,oscar_mode):
         oscar_file = os.path.join(OUTPUT_DIR,oscar_mode[d],year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc')
         drifter_file = os.path.join(DRIFTER_SRC_DIR,f'drifter_6hour_qc_{year}{month}.nc')
         if not os.path.isfile(oscar_file):
-            print(f'\nWARNING!! Missing OSCAR file for validation:{oscar_file}')
+            print(f'\nWARNING!! Missing OSCAR files for validation')
             sys.exit()
         if os.path.isfile(drifter_file):
             if drifter_file not in drifterfilelist:
                 drifterfilelist.append(drifter_file)
         else:
-            print(f'\nWARNING!! Missing DRIFTER file for validation:{drifter_file}')
+            print(f'\nWARNING!! Missing DRIFTER file for validation for: {year}-{month}')
             sys.exit()
 
 

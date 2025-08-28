@@ -2,10 +2,10 @@
 
 general:
 
-  start_date: "2024-11-01"
-  end_date: "2024-12-31"
+  start_date: "1993-01-01"
+  end_date: "1993-01-31"
 
-  ssh_mode: 'neurost' #options: cmems, neurost
+  ssh_mode: 'cmems' #options: cmems, neurost
 
   overwrite_download: false 
 #if we want to redownload the data even if already has been in the past
