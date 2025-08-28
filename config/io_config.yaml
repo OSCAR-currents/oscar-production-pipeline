@@ -2,10 +2,10 @@
 
 general:
 
-  start_date: "2024-11-15"
-  end_date: "2024-11-30"
+  start_date: "2020-11-15"
+  end_date: "2020-11-15"
 
-  ssh_mode: 'cmems' #options: cmems, neurost
+  ssh_mode: 'neurost' #options: cmems, neurost
 
   overwrite_download: false 
 #if we want to redownload the data even if already has been in the past
@@ -18,9 +18,9 @@ general:
 #if false, it will not recompute the final currents that exist already but it will still recompute currents that are currently interim (should be changed to: only compute currents that were interim if final input files are available)
 #if true, it will recompute currents whether the output file already exists or not
 
-  do_intermediate_checks: false # to make daily plots of interpolated SSH, SST, winds fields and SSH and SST gradients
+  do_intermediate_checks: true # to make daily plots of interpolated SSH, SST, winds fields and SSH and SST gradients
 
-  plot_currents: false
+  plot_currents: true
 
   do_validation: true
 

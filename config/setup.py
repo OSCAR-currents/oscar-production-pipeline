@@ -49,8 +49,3 @@ WIND_PATTERN = "ERA5_*.nc"
 
 DRIFTER_SRC_DIR = DATA_DIR + "/SRC/DRIFTERS"
 
-
-#### FOR INTERMEDIATE CHECKS ############
-filename_interp = "interp_{var}_{day}"
-filename_gradient = "grad_{var}_{day}"
-

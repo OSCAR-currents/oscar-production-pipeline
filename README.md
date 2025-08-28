@@ -77,8 +77,10 @@ open "/Applications/Python 3.12/Install Certificates.command"
 ---
 
 ## Quick Start
-Once everything is set up, run the package as a module from the project root:
+- Change options in config/io_config.yaml
+- Option to change paths in config/setup.py
+- Once everything is set up, run the package as a module from the project root:
 
 ```bash
-python3 -m pyoscar.main
+python3 -m oscar_currents.main
 ```
