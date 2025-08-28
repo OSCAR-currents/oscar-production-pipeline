@@ -2,8 +2,8 @@
 
 general:
 
-  start_date: "2020-11-15"
-  end_date: "2020-11-15"
+  start_date: "2024-11-01"
+  end_date: "2024-12-31"
 
   ssh_mode: 'neurost' #options: cmems, neurost
 
@@ -18,13 +18,19 @@ general:
 #if false, it will not recompute the final currents that exist already but it will still recompute currents that are currently interim (should be changed to: only compute currents that were interim if final input files are available)
 #if true, it will recompute currents whether the output file already exists or not
 
-  do_intermediate_checks: true # to make daily plots of interpolated SSH, SST, winds fields and SSH and SST gradients
+  do_intermediate_checks: true 
+#make daily plots of interpolated SSH, SST, winds fields and SSH and SST gradients
+#will overwrite existing plots if currents are computed
 
   plot_currents: true
+#won't overwrite existing plot unless overwrite_current is true
+#will replace interim plot by final if final current now available
 
-  do_validation: true
+  do_validation: true 
+#will overwrite existing validation pdf for this time range
 
-  do_eq: true #equatorial treatment for current computation
+  do_eq: true 
+#equatorial treatment for current computation
 
 
 plot_currents:

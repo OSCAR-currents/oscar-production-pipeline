@@ -275,7 +275,7 @@ def download_sst_cmc(dates):
         # skip if any .nc for this YYYYMMDD is already present and we don't want to overwrite
         if _has_nc_for_date(target_folder, start): #if file already exists
             if not OVERWRITE_DOWNLOAD: #and we don't want to overwrite, we skip
-                print(f"CMC SST skip (already existing for {dt.strftime('%Y-%m-%d')}: {target_folder})")
+                print(f"CMC SST skip (file already existing for {dt.strftime('%Y-%m-%d')}: {target_folder})")
                 continue
 
         os.makedirs(target_folder, exist_ok=True)
@@ -336,7 +336,7 @@ def get_drifter_data(year_month):
 
     # Skip if file exists and we don't want to overwrite or we don't do the validation
     if os.path.exists(target_path) and not OVERWRITE_DOWNLOAD:
-        print(f"Drifter data skip (already existing: {target_path})")
+        print(f"Drifter data skip (file already existing: {target_path})")
         return target_path
     if not DO_VALIDATION:
         print(f"Drifter data not needed - no validation")
