@@ -121,4 +121,3 @@ def plot_currents(ds_path, filename, lon2d, lat2d, u, v, speed, title, ssh_mode,
     plt.tight_layout()
     plt.savefig(filename, dpi=100, bbox_inches='tight')
     plt.close()
-    print(f"Saved figure to: {filename}")

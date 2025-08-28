@@ -91,7 +91,6 @@ def run_compute_currents(dates_to_process, oscar_mode):
                         oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V2.0"
                         doi =  "10.5067/OSCAR-25I20"
                 elif SSH_MODE == 'neurost':
-                    print('im here')
                     outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
                     ssh_long_desc = "Daily NeurOST L4 Sea Surface Height (NEUROST_SSH-SST_L4_V2024.0) DOI: 10.5067/NEURO-STV24"
                     oscar_long_desc = "Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - 0.01 Degree (Version 2.0)"
@@ -99,7 +98,7 @@ def run_compute_currents(dates_to_process, oscar_mode):
                     oscar_id = ""
                     doi =  ""
                 else:
-                    print(f'Unknown ssh_mode, should be cmems or neurost')
+                    print(f'Unknown ssh_mode, should be cmems or neurost - EXIT')
                     sys.exit()
                 write_oscar(ref_ds, Ug, Uw, Ub, save_file, outputdir,
                                       ssh_long_desc, wind_long_desc, sst_long_desc,
@@ -129,12 +128,13 @@ def run_plotting(dates,oscar_mode):
                 os.remove(os.path.join(filename.replace("final", "interim"))) #if interim figure exists, we delete before creating final
                 print(f'Deleting {os.path.join(filename.replace("final", "interim"))}')
             except OSError: pass
-            title = f"({SSH_MODE.upper()}) OSCAR Surface Currents of {REGION.upper()} on {dates[d]}"
+            title = f"OSCAR Surface Currents - {REGION.upper()} - {dates[d]}"
             ds = xr.open_dataset(ds_path)
             u, v, lon, lat, speed, lon2d, lat2d = extract_data(ds)
             plot_currents(ds_path, filename, lon2d, lat2d, u, v, speed, title, SSH_MODE)
         else:
             print(f'Figure already exists and no data/currents updates - skip {filename}')
+    print(f'Currents maps saved in {os.path.join(FIG_DIR, SSH_MODE.upper(), REGION)}')
 
 
 def run_validation(dates,oscar_mode):
@@ -164,13 +164,13 @@ def run_validation(dates,oscar_mode):
         oscar_file = os.path.join(OUTPUT_DIR,oscar_mode[d],year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc')
         drifter_file = os.path.join(DRIFTER_SRC_DIR,f'drifter_6hour_qc_{year}{month}.nc')
         if not os.path.isfile(oscar_file):
-            print(f'\nWARNING!! Missing OSCAR files for validation')
+            print(f'\nWARNING!! Missing OSCAR files to perform the validation - EXIT')
             sys.exit()
         if os.path.isfile(drifter_file):
             if drifter_file not in drifterfilelist:
                 drifterfilelist.append(drifter_file)
         else:
-            print(f'\nWARNING!! Missing DRIFTER file for validation for: {year}-{month}')
+            print(f'\nWARNING!! Missing DRIFTER file for: {year}-{month} to perform the validation - EXIT')
             sys.exit()
 
 
@@ -226,6 +226,7 @@ def run_validation(dates,oscar_mode):
     except OSError: pass
     drifter_vs_oscar_dslist = xr.concat(drifter_vs_oscar_dslist, dim='drifter')
     drifter_vs_oscar_dslist.to_netcdf(validation_ncpath, mode = 'w')
+    print(f'OSCAR/DRIFTER colocation ncfile saved at: {validation_ncpath}')
         
     corr_map = compute_binned_correlations(
         drifter_vs_oscar_dslist,
@@ -271,12 +272,12 @@ def run_validation(dates,oscar_mode):
 
 def run_download(dates):
 
-    if SSH_MODE == "cmems":
-        download_ssh_cmems(dates)
-    elif SSH_MODE  == "neurost":
-        download_ssh_neurost(dates)
-    download_wind_era5(dates)
-    download_sst_cmc(dates)
+    # if SSH_MODE == "cmems":
+    #     download_ssh_cmems(dates)
+    # elif SSH_MODE  == "neurost":
+    #     download_ssh_neurost(dates)
+    # download_wind_era5(dates)
+    # download_sst_cmc(dates)
     download_drifter_data(dates)
 
     return
@@ -295,14 +296,14 @@ def main():
     print(f'...validation {DO_VALIDATION}') 
             
     if OVERWRITE_DOWNLOAD and not OVERWRITE_CURRENT:
-        print("\nWARNING!! overwrite_currents cannot be False while overwrite_download is True")
+        print("\nWARNING!! overwrite_currents cannot be False while overwrite_download is True - EXIT")
         sys.exit()
             
     if  (OVERWRITE_CURRENT or OVERWRITE_DOWNLOAD or DO_VALIDATION) and (PLOT_CURRENTS and REGION!='global'):
         print("\nWARNING!! The region option is only for the currents plotting. The input data download, currents computation, and validation will be done globally")
             
     if not PLOT_CURRENTS and REGION!='global':
-        print("\nWARNING!! The region option is only for the currents plotting. For currents computation and validation, use 'global'")
+        print("\nWARNING!! The region option is only for the currents plotting. For currents computation and validation, use 'global' - EXIT")
         sys.exit()
     
     print("\n\n************************************************")    

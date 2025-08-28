@@ -76,11 +76,11 @@ def get_unique_drifter_daily_avg(ds, output_folder):
     os.makedirs(output_folder, exist_ok=True)
     unique_ids = np.unique(ds['ID'].values)
 
-
     for drifter_id in unique_ids:
         
-        mask = ds['ID'] == drifter_id
-        drifter_ds = ds.where(mask, drop=True)
+        drifter_ds = ds.where(ds['ID'] == drifter_id, drop=True)
+        drifter_ds = drifter_ds.where(drifter_ds['ve'] != -999999.0, drop=True)
+        drifter_ds = drifter_ds.where(drifter_ds['vn'] != -999999.0, drop=True)
         drifter_ds = drifter_ds.sortby('time')
         daily_ds = drifter_ds.resample(time='1D').mean()
         daily_ds['ID'] = xr.DataArray(np.full(daily_ds.dims['time'], drifter_id), dims='time')
@@ -116,14 +116,11 @@ def get_daily_avg_all_drifters(unique_drifters_dir, daily_avg_dir, selected_date
                 lon = ds['longitude'].sel(time=selected_date).values.item()
                 drifter_id = ds['ID'].sel(time=selected_date).values.item()
 
-        
-
                 ve_list.append(ve)
                 vn_list.append(vn)
                 latitudes.append(lat)
                 longitudes.append(lon)
                 ids.append(str(drifter_id))
-
 
             except Exception as e:
                 print(f"Skipping {file}: {e}")
