@@ -82,11 +82,14 @@ def get_unique_drifter_daily_avg(ds, output_folder):
         drifter_ds = drifter_ds.where(drifter_ds['ve'] != -999999.0, drop=True)
         drifter_ds = drifter_ds.where(drifter_ds['vn'] != -999999.0, drop=True)
         drifter_ds = drifter_ds.sortby('time')
-        daily_ds = drifter_ds.resample(time='1D').mean()
-        daily_ds['ID'] = xr.DataArray(np.full(daily_ds.dims['time'], drifter_id), dims='time')
+        try:
+            daily_ds = drifter_ds.resample(time='1D').mean()
+            daily_ds['ID'] = xr.DataArray(np.full(daily_ds.dims['time'], drifter_id), dims='time')
        
-        outfile = os.path.join(output_folder, f"drifter_{drifter_id}_daily_avg.nc")
-        daily_ds.to_netcdf(outfile)
+            outfile = os.path.join(output_folder, f"drifter_{drifter_id}_daily_avg.nc")
+            daily_ds.to_netcdf(outfile)
+        except: 
+            pass
 
         
 def get_daily_avg_all_drifters(unique_drifters_dir, daily_avg_dir, selected_date, dailyfilename):
