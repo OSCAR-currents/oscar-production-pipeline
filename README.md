@@ -82,5 +82,5 @@ open "/Applications/Python 3.12/Install Certificates.command"
 - Once everything is set up, run the package as a module from the project root:
 
 ```bash
-python3 -m oscar_currents.main
+python3 -m oscar-currents.main
 ```
