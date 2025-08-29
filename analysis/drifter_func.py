@@ -350,103 +350,197 @@ def plot_density(
     return fig
 
 
-def make_slope_map(df_in,component,temporal_range):
+
+# def make_slope_map(df_in,component,temporal_range):
+#     """
+#     Compute per-grid-cell OLS slope between truth_col and model_col,
+#     plot the slope field, and return the figure object.
+#     """
+#
+#     # hard-coded config
+#     lat_bins = np.arange(-90, 90, 2)
+#     lon_bins = np.arange(0, 361, 2)
+#     MIN_SAMPLES = 5
+#     vmin, vmax = 0, 1
+#     cmap = 'jet'
+#
+#     # Copy dataset to df
+#     df = df_in[['latitude','longitude',f"{component}_drifter",f"{component}_oscar"]].to_dataframe().reset_index()
+#     df['longitude'] = df['longitude'] % 360
+#
+#     # Bin latitude/longitude
+#     df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1])
+#     df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1])
+#
+#     # Define slope helper
+#     def _safe_slope(x, y):
+#         x = np.asarray(x)
+#         y = np.asarray(y)
+#         mask = np.isfinite(x) & np.isfinite(y)
+#         x = x[mask]; y = y[mask]
+#         if x.size < MIN_SAMPLES or np.nanstd(x) == 0:
+#             return np.nan
+#         return linregress(x, y).slope
+#
+#     # Group by binned coordinates and compute slope
+#     s = df.groupby(['lat_bin','lon_bin']).apply(lambda g: _safe_slope(g[f"{component}_drifter"], g[f"{component}_oscar"]))
+#
+#     # Pivot to 2D array for plotting
+#     s_grid = s.reset_index().pivot(index='lat_bin', columns='lon_bin', values=0)
+#
+#     # ---- plot ----
+#     fig = plt.figure(figsize=(12, 6))
+#     ax = plt.axes(projection=ccrs.PlateCarree())
+#
+#     lons = s_grid.columns.values
+#     lats = s_grid.index.values
+#     im = ax.pcolormesh(lons, lats, s_grid.values, vmin=vmin, vmax=vmax, cmap=cmap)
+#
+#     ax.coastlines()
+#     ax.set_title(f"Slope of the linear regression between {component} OSCAR and {component} Drifter - {temporal_range}", fontsize=14)
+#
+#     gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+#     gl.top_labels = False
+#     gl.right_labels = False
+#
+#     cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
+#     cbar.set_label('Slope',fontsize=12)
+#
+#     plt.tight_layout()
+#
+#     return fig
+
+
+def make_slope_map(df_in, component, temporal_range):
     """
-    Compute per-grid-cell OLS slope between truth_col and model_col,
+    Compute per-grid-cell OLS slope between Drifter and OSCAR components,
     plot the slope field, and return the figure object.
     """
-    # hard-coded config
-    lat_bins = np.arange(-90, 90, 2)
-    lon_bins = np.arange(0, 361, 2)
+
+    # Configuration
+    lat_range = (-90, 90)
+    lon_range = (-180, 180)
+    bin_size = 2
     MIN_SAMPLES = 5
     vmin, vmax = 0, 1
     cmap = 'jet'
 
-    # Copy dataset to df
-    df = df_in[['latitude','longitude',f"{component}_drifter",f"{component}_oscar"]].to_dataframe().reset_index()
-    df['longitude'] = df['longitude'] % 360
+    # Convert dataset to DataFrame
+    df = df_in[[ 'latitude', 'longitude', f"{component}_drifter", f"{component}_oscar"]].to_dataframe().reset_index()
+    
+    # Wrap longitudes to [-180, 180]
+    df['longitude'] = ((df['longitude'] + 180) % 360) - 180
 
     # Bin latitude/longitude
-    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1])
-    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1])
+    lat_bins = np.arange(lat_range[0], lat_range[1] + bin_size, bin_size)
+    lon_bins = np.arange(lon_range[0], lon_range[1] + bin_size, bin_size)
 
-    # Define slope helper
+    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1]).astype(float)
+    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1]).astype(float)
+
+    # Helper to compute slope safely
     def _safe_slope(x, y):
         x = np.asarray(x)
         y = np.asarray(y)
         mask = np.isfinite(x) & np.isfinite(y)
-        x = x[mask]; y = y[mask]
+        x = x[mask]
+        y = y[mask]
         if x.size < MIN_SAMPLES or np.nanstd(x) == 0:
             return np.nan
         return linregress(x, y).slope
 
     # Group by binned coordinates and compute slope
-    s = df.groupby(['lat_bin','lon_bin']).apply(lambda g: _safe_slope(g[f"{component}_drifter"], g[f"{component}_oscar"]))
+    s = df.groupby(['lat_bin', 'lon_bin']).apply(
+        lambda g: _safe_slope(g[f"{component}_drifter"], g[f"{component}_oscar"])
+    )
 
-    # Pivot to 2D array for plotting
+    # Pivot to 2D array
     s_grid = s.reset_index().pivot(index='lat_bin', columns='lon_bin', values=0)
+    s_grid = s_grid.sort_index(axis=0).sort_index(axis=1).reindex(index=lat_bins[:-1], columns=lon_bins[:-1])
+    
+    # Compute edges for pcolormesh
+    lon_edges = np.append(lon_bins[:-1], lon_bins[-1])
+    lat_edges = np.append(lat_bins[:-1], lat_bins[-1])
 
-    # ---- plot ----
+    # ---- Plot ----
     fig = plt.figure(figsize=(12, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
-    lons = s_grid.columns.values
-    lats = s_grid.index.values
-    im = ax.pcolormesh(lons, lats, s_grid.values, vmin=vmin, vmax=vmax, cmap=cmap)
+    im = ax.pcolormesh(lon_edges, lat_edges, s_grid.values, vmin=vmin, vmax=vmax, cmap=cmap)
 
     ax.coastlines()
-    ax.set_title(f"Slope of the linear regression between {component} OSCAR and {component} Drifter - {temporal_range}", fontsize=14)
+    ax.set_title(f"Slope of {component} OSCAR vs {component} Drifter - {temporal_range}", fontsize=14)
 
     gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
     gl.top_labels = False
     gl.right_labels = False
 
     cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
-    cbar.set_label('Slope',fontsize=12)
+    cbar.set_label('Slope', fontsize=12)
 
     plt.tight_layout()
 
     return fig
 
 
-def make_rms_map(df_in, component, temporal_range, vmin=0.0, vmax=0.5, zoom=None):
-    
-    # --- hard-coded config ---
-    lat_bins = np.arange(-90, 90, 2)
-    lon_bins = np.arange(0, 361, 2)
-    MIN_SAMPLES = 5
 
-    # Copy dataset to df
+def make_rms_map(df_in, component, temporal_range, vmin=0.0, vmax=0.5, zoom=None):
+    """
+    Compute per-grid-cell RMSD between Drifter and OSCAR components,
+    plot the RMSD field, and return the figure object.
+    """
+
+    # Configuration
+    lat_range = (-90, 90)
+    lon_range = (-180, 180)
+    bin_size = 2
+    MIN_SAMPLES = 5
+    cmap = 'jet'
+
+    # Convert dataset to DataFrame
     df = df_in[['latitude','longitude',f"{component}_drifter",f"{component}_oscar"]].to_dataframe().reset_index()
-    df['longitude'] = df['longitude'] % 360
+    
+    # Wrap longitudes to [-180, 180]
+    df['longitude'] = ((df['longitude'] + 180) % 360) - 180
 
     # Bin latitude/longitude
-    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1])
-    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1])
+    lat_bins = np.arange(lat_range[0], lat_range[1] + bin_size, bin_size)
+    lon_bins = np.arange(lon_range[0], lon_range[1] + bin_size, bin_size)
 
-    # --- RMSD helper ---
+    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1]).astype(float)
+    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1]).astype(float)
+
+    # RMSD helper
     def _safe_rmsd(drifter, oscar, nmin=MIN_SAMPLES):
-        t = np.asarray(drifter); p = np.asarray(oscar)
-        m = np.isfinite(t) & np.isfinite(p)
-        t, p = t[m], p[m]
+        t = np.asarray(drifter)
+        p = np.asarray(oscar)
+        mask = np.isfinite(t) & np.isfinite(p)
+        t, p = t[mask], p[mask]
         if t.size < nmin:
             return np.nan
         return float(np.sqrt(np.mean((p - t)**2)))
 
-    # --- compute RMSD grid ---
-    s = df.groupby(['lat_bin','lon_bin']).apply(lambda g: _safe_rmsd(g[f"{component}_drifter"], g[f"{component}_oscar"]))
+    # Compute RMSD per bin
+    s = df.groupby(['lat_bin','lon_bin']).apply(
+        lambda g: _safe_rmsd(g[f"{component}_drifter"], g[f"{component}_oscar"])
+    )
 
-    # Pivot to 2D array for plotting
+    # Pivot to 2D array
     s_grid = s.reset_index().pivot(index='lat_bin', columns='lon_bin', values=0)
     
-    # --- plot ---
+    # Reindex to full grid to avoid missing bins
+    s_grid = s_grid.reindex(index=lat_bins[:-1], columns=lon_bins[:-1])
+
+    # Compute edges for pcolormesh
+    lon_edges = np.append(lon_bins[:-1], lon_bins[-1])
+    lat_edges = np.append(lat_bins[:-1], lat_bins[-1])
+
+    # ---- Plot ----
     fig = plt.figure(figsize=(12, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
-    lons = s_grid.columns.values
-    lats = s_grid.index.values
-    im = ax.pcolormesh(lons, lats, s_grid.values, vmin=vmin, vmax=vmax,
-                       cmap='jet', transform=ccrs.PlateCarree())
+    im = ax.pcolormesh(lon_edges, lat_edges, s_grid.values, vmin=vmin, vmax=vmax,
+                       cmap=cmap, shading='auto')
 
     ax.coastlines()
     ax.set_title(f"RMSD between {component} OSCAR and {component} Drifter - {temporal_range}", fontsize=14)
@@ -463,33 +557,44 @@ def make_rms_map(df_in, component, temporal_range, vmin=0.0, vmax=0.5, zoom=None
     cbar.set_label('RMSD (m/s)', fontsize=12)
 
     plt.tight_layout()
-
     return fig
 
 
-def make_residual_corr_map(df_in, component, temporal_range, vmin=-0.2, vmax=0.2, zoom=None):
- 
-    # --- hard-coded grid config ---
-    lat_bins = np.arange(-90, 90, 2)
-    lon_bins = np.arange(0, 361, 2)
-    MIN_SAMPLES = 5
 
-    # Copy dataset to df
+def make_residual_corr_map(df_in, component, temporal_range, vmin=-0.2, vmax=0.2, zoom=None):
+    """
+    Compute per-grid-cell Pearson correlation between Drifter and OSCAR components residuals,
+    plot the correlation field, and return the figure object.
+    """
+
+    # Configuration
+    lat_range = (-90, 90)
+    lon_range = (-180, 180)
+    bin_size = 2
+    MIN_SAMPLES = 5
+    cmap = 'RdBu_r'
+
+    # Convert dataset to DataFrame
     df = df_in[['latitude','longitude',f"{component}_drifter",f"{component}_oscar"]].to_dataframe().reset_index()
-    df['longitude'] = df['longitude'] % 360
+    
+    # Wrap longitudes to [-180, 180]
+    df['longitude'] = ((df['longitude'] + 180) % 360) - 180
 
     # Bin latitude/longitude
-    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1])
-    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1])
+    lat_bins = np.arange(lat_range[0], lat_range[1] + bin_size, bin_size)
+    lon_bins = np.arange(lon_range[0], lon_range[1] + bin_size, bin_size)
 
+    df['lat_bin'] = pd.cut(df['latitude'], bins=lat_bins, labels=lat_bins[:-1]).astype(float)
+    df['lon_bin'] = pd.cut(df['longitude'], bins=lon_bins, labels=lon_bins[:-1]).astype(float)
+    
     # --- correlation helper (residual vs truth) ---
     def _safe_corr(a, b, nmin=MIN_SAMPLES):
-        a = np.asarray(a); b = np.asarray(b)
+        a = np.asarray(a)
+        b = np.asarray(b)
         m = np.isfinite(a) & np.isfinite(b)
         if m.sum() < nmin:
             return np.nan
-        a = a[m]; b = b[m]
-        # guard against zero variance
+        a, b = a[m], b[m]
         if np.nanstd(a) == 0 or np.nanstd(b) == 0:
             return np.nan
         return float(np.corrcoef(a, b)[0, 1])
@@ -497,25 +602,25 @@ def make_residual_corr_map(df_in, component, temporal_range, vmin=-0.2, vmax=0.2
     # --- compute residual correlation grid ---
     s = df.groupby(['lat_bin','lon_bin']).apply(lambda g: _safe_corr(g[f"{component}_drifter"], g[f"{component}_oscar"]))
 
-    # Pivot to 2D array for plotting
+    # Pivot to 2D array and reindex to full grid
     s_grid = s.reset_index().pivot(index='lat_bin', columns='lon_bin', values=0)
+    s_grid = s_grid.reindex(index=lat_bins[:-1], columns=lon_bins[:-1])
 
-    # --- plot ---
+    # Compute edges for pcolormesh
+    lon_edges = np.append(lon_bins[:-1], lon_bins[-1])
+    lat_edges = np.append(lat_bins[:-1], lat_bins[-1])
+
+    # ---- Plot ----
     fig = plt.figure(figsize=(12, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
-    lons = s_grid.columns.values
-    lats = s_grid.index.values
-    im = ax.pcolormesh(
-        lons, lats, s_grid.values,
-        cmap="RdBu_r", vmin=vmin, vmax=vmax,
-        transform=ccrs.PlateCarree()
-    )
+    im = ax.pcolormesh(lon_edges, lat_edges, s_grid.values, cmap=cmap,
+                       vmin=vmin, vmax=vmax, shading='auto', transform=ccrs.PlateCarree())
 
     ax.coastlines()
-    ax.set_title(f"Pearson coefficient for the correaltion between {component} OSCAR and {component} Drifter - {temporal_range}", fontsize=14)
+    ax.set_title(f"Pearson correlation between {component} OSCAR and {component} Drifter - {temporal_range}", fontsize=14)
 
-    gl = ax.gridlines(draw_labels=True, linewidth=0.5, color="gray", alpha=0.5, linestyle="--")
+    gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
     gl.top_labels = False
     gl.right_labels = False
 
@@ -528,4 +633,3 @@ def make_residual_corr_map(df_in, component, temporal_range, vmin=-0.2, vmax=0.2
 
     plt.tight_layout()
     return fig
-
