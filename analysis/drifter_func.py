@@ -10,31 +10,31 @@ from scipy.interpolate import RegularGridInterpolator
 import pandas as pd
 from matplotlib.colors import LogNorm
 from scipy.stats import linregress
+
+
+def get_unique_drifter_daily_avg(ds, output_folder): 
+    ''' 
+    Input: month of 6 hourly drifters in one netcdf 
+    Output: individual drifter daily average points for the year 
+    ''' 
+    os.makedirs(output_folder, exist_ok=True) 
     
-
-def get_unique_drifter_daily_avg(ds, output_folder):
-    '''
-    Input: month of 6 hourly drifters in one netcdf
-    Output: individual drifter daily average  points for the year
-    '''
-    os.makedirs(output_folder, exist_ok=True)
-    unique_ids = np.unique(ds['ID'].values)
-
-    for drifter_id in unique_ids:
+    unique_ids = np.unique(ds['ID'].values) 
+    
+    for drifter_id in unique_ids: 
+        drifter_ds = ds.where(ds['ID'] == drifter_id, drop=True) 
+        drifter_ds = drifter_ds.where((drifter_ds['ve'] <= 10) & (drifter_ds['ve'] >= -10) & (drifter_ds['vn'] <= 10) & (drifter_ds['vn'] >= -10), drop=True) # there are still large values in drifters that we flag
+        drifter_ds = drifter_ds.sortby('time') 
         
-        drifter_ds = ds.where(ds['ID'] == drifter_id, drop=True)
-        drifter_ds = drifter_ds.where(drifter_ds['ve'] != -999999.0, drop=True)
-        drifter_ds = drifter_ds.where(drifter_ds['vn'] != -999999.0, drop=True)
-        drifter_ds = drifter_ds.sortby('time')
         try:
-            daily_ds = drifter_ds.resample(time='1D').mean()
-            daily_ds['ID'] = xr.DataArray(np.full(daily_ds.dims['time'], drifter_id), dims='time')
-       
-            outfile = os.path.join(output_folder, f"drifter_{drifter_id}_daily_avg.nc")
+            daily_ds = drifter_ds.resample(time='1D').mean() 
+            daily_ds['ID'] = xr.DataArray(np.full(daily_ds.dims['time'], drifter_id), dims='time') 
+            outfile = os.path.join(output_folder, f"drifter_{drifter_id}_daily_avg.nc") 
             daily_ds.to_netcdf(outfile)
-        except: 
+            
+        except: #no valid data
             pass
-
+            
         
 def get_daily_avg_all_drifters(unique_drifters_dir, daily_avg_dir, selected_date, dailyfilename):
 
@@ -131,20 +131,20 @@ def interpolate_oscar_to_drifters(ds_oscar, ds_drifter, method='linear'):
 #==============DRIFTER vs OSCAR ============#
         
 def plot_velocity_comparison_scatter(df, temporal_range):
-    def compute_metrics(y_true, y_pred):
+    def compute_metrics(y_drifter, y_oscar):
         # Flatten and mask NaNs
-        y_true = np.array(y_true).flatten()
-        y_pred = np.array(y_pred).flatten()
-        mask = ~np.isnan(y_true) & ~np.isnan(y_pred)
+        y_drifter = np.array(y_drifter).flatten()
+        y_oscar = np.array(y_oscar).flatten()
+        mask = ~np.isnan(y_drifter) & ~np.isnan(y_oscar)
         
-        y_true_clean = y_true[mask]
-        y_pred_clean = y_pred[mask]
+        y_drifter_clean = y_drifter[mask]
+        y_oscar_clean = y_oscar[mask]
 
         # Metrics
-        difference = np.mean(y_pred_clean - y_true_clean)
-        rmsd = np.sqrt(np.mean((y_pred_clean - y_true_clean) ** 2))
-        r2 = 1 - (np.sum((y_true_clean - y_pred_clean) ** 2) / 
-                  np.sum((y_true_clean - np.mean(y_true_clean)) ** 2))
+        difference = np.mean(y_oscar_clean - y_drifter_clean)
+        rmsd = np.sqrt(np.mean((y_oscar_clean - y_drifter_clean) ** 2))
+        r2 = 1 - (np.sum((y_drifter_clean - y_oscar_clean) ** 2) / 
+                  np.sum((y_drifter_clean - np.mean(y_drifter_clean)) ** 2))
 
         return r2, rmsd, difference
     
