@@ -261,6 +261,12 @@ def run_validation(dates,oscar_mode):
     figs.append(make_rms_map(drifter_vs_oscar_dslist, 'v', temporal_range))
     figs.append(make_residual_corr_map(drifter_vs_oscar_dslist, 'u', temporal_range))
     figs.append(make_residual_corr_map(drifter_vs_oscar_dslist, 'v', temporal_range))
+    
+    try: #remove existing pdf file for this time range
+        pattern =os.path.join(VALIDATION_DIR, f'Validation_report_{SSH_MODE.upper()}_{years}{months}{days}-{yeare}{monthe}{daye}_*.pdf')
+        for file in glob.glob(pattern):
+            os.remove(file) # we remove any previous nc file
+    except OSError: pass
     save_plots_to_pdf(figs, captions,
                     pdf_path=validation_pdf_path,
                     metadata={"Title":f"Comparison OSCAR (from {SSH_MODE}) and Drifters - {temporal_range}","Date":datetime.today().strftime("%Y-%m-%d")})

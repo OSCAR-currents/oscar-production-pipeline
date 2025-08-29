@@ -10,62 +10,6 @@ from scipy.interpolate import RegularGridInterpolator
 import pandas as pd
 from matplotlib.colors import LogNorm
 from scipy.stats import linregress
-
-
-def plot_velocity_comparison(obs, model, component='u', limits=(-1, 1)):
-    """
-    Scatter plot comparing drifter (obs) vs model (OSCAR) velocity component.
-    Computes and displays R², RMSD, Difference, and Pearson correlation.
-
-    Parameters:
-        obs (np.ndarray): Drifter data (ve or vn)
-        model (np.ndarray): Model data (u or v)
-        component (str): 'u' or 'v' to label axes and title
-        limits (tuple): Axis limits for plot
-    """
-    # Flatten and clean NaNs
-    obs = obs.flatten()
-    model = model.flatten()
-    mask = ~np.isnan(obs) & ~np.isnan(model)
-    obs_clean = obs[mask]
-    model_clean = model[mask]
-
-    # Metrics
-    r2 = r2_score(obs_clean, model_clean)
-    rmsd = np.sqrt(mean_squared_error(obs_clean, model_clean))
-    difference = np.mean(model_clean - obs_clean)
-    corr, _ = pearsonr(obs_clean, model_clean)
-
-    # Plot
-    plt.figure(figsize=(6, 6))
-    plt.scatter(obs_clean, model_clean, alpha=0.4, label="Data", s=15)
-    plt.plot(limits, limits, 'k--', label='1:1 Line')
-
-    plt.xlabel(f"Drifter {component} (m/s)")
-    plt.ylabel(f"Model {component} (m/s)")
-    plt.title(f"{component.upper()} Component Velocity Comparison")
-    plt.xlim(limits)
-    plt.ylim(limits)
-    plt.grid(True)
-    plt.legend()
-
-    # Metrics annotation box
-    text = (
-        f"R²: {r2:.3f}\n"
-        f"RMSD: {rmsd:.3f} m/s\n"
-        f"Difference: {difference:.3f} m/s\n"
-        f"Pearson: {corr:.3f}\n"
-        f"N: {len(obs_clean)}"
-    )
-    plt.text(
-        limits[0] + 0.05, limits[1] - 0.15,
-        text,
-        bbox=dict(facecolor='white', alpha=0.8),
-        fontsize=10
-    )
-
-    plt.tight_layout()
-    plt.show()
     
 
 def get_unique_drifter_daily_avg(ds, output_folder):
@@ -204,8 +148,7 @@ def plot_velocity_comparison_scatter(df, temporal_range):
 
         return r2, rmsd, difference
     
-    
-    fig = plt.figure(figsize=(14, 6))
+    fig = plt.figure(figsize=(12, 6))
 
     # ---- Zonal ----
     ax1 = plt.subplot(1, 2, 1)
@@ -255,7 +198,8 @@ def compute_binned_correlations(
     components=('u', 'v'),
     lat_range=(-90, 90),
     lon_range=(-180, 180),
-    bin_size=2
+    bin_size=2,
+    MIN_SAMPLES=5
 ):
     """
     Returns a dict of 2D correlation DataFrames
@@ -287,7 +231,7 @@ def compute_binned_correlations(
     for i in range(nlat):
         for j in range(nlon):
             mask = (lat_idx == i) & (lon_idx == j)
-            if mask.sum() > 1:  # need at least 2 points
+            if mask.sum() >= MIN_SAMPLES:  # need at least MIN_SAMPLES points
                 corr_u_grid[i, j] = np.corrcoef(
                     data["u_drifter"].values[mask], data["u_oscar"].values[mask]
                 )[0, 1]
@@ -324,7 +268,7 @@ def plot_binned_correlation_map(
     fig = plt.figure(figsize=(12, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
-    mesh = ax.pcolormesh(corr_df.lon.values, corr_df.lat.values, corr_df.values, cmap=cmap, vmin=vmin, vmax=vmax)
+    im = ax.pcolormesh(corr_df.lon.values, corr_df.lat.values, corr_df.values, cmap=cmap, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree())
     ax.coastlines()
 
     # Gridlines
@@ -340,10 +284,11 @@ def plot_binned_correlation_map(
     title = f"Correlation {component} OSCAR vs {component} Drifters - {temporal_range}"
     ax.set_title(title, fontsize=14)
 
-    cbar = plt.colorbar(mesh, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
-    cbar.set_label('Correlation (R)')
+    cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
+    cbar.set_label('Correlation (R)', fontsize=12)
 
     plt.tight_layout()
+    
     return fig
 
 
@@ -399,7 +344,7 @@ def plot_density(
 
     # colorbar
     cb = fig.colorbar(mappable, ax=ax, orientation='vertical', fraction=0.035, pad=0.04)
-    cb.set_label("Counts" + (" (log scale)" if log else ""))
+    cb.set_label("Counts" + (" (log scale)" if log else ""),fontsize=12)
     fig.tight_layout()
 
     return fig
@@ -456,8 +401,8 @@ def make_slope_map(df_in,component,temporal_range):
     gl.top_labels = False
     gl.right_labels = False
 
-    cb = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.01, pad=0.04)
-    cb.set_label('Slope')
+    cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
+    cbar.set_label('Slope',fontsize=12)
 
     plt.tight_layout()
 
@@ -514,8 +459,8 @@ def make_rms_map(df_in, component, temporal_range, vmin=0.0, vmax=0.5, zoom=None
         lon_min, lon_max, lat_min, lat_max = zoom
         ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
 
-    cb = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.01, pad=0.04)
-    cb.set_label('RMSD (m/s)', fontsize=12)
+    cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
+    cbar.set_label('RMSD (m/s)', fontsize=12)
 
     plt.tight_layout()
 
@@ -578,8 +523,9 @@ def make_residual_corr_map(df_in, component, temporal_range, vmin=-0.2, vmax=0.2
         lon_min, lon_max, lat_min, lat_max = zoom
         ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
 
-    cb = plt.colorbar(im, ax=ax, orientation="vertical", fraction=0.035, pad=0.04)
-    cb.set_label("Pearson correlation coefficient", fontsize=11)
+    cbar = plt.colorbar(im, ax=ax, orientation='vertical', fraction=0.03, pad=0.02)
+    cbar.set_label("Pearson correlation coefficient", fontsize=12)
 
     plt.tight_layout()
     return fig
+
