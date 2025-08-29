@@ -139,10 +139,6 @@ def run_plotting(dates,oscar_mode):
 
 def run_validation(dates,oscar_mode):
     
-    #output colocation nc file    
-    validation_ncdir = os.path.join(VALIDATION_NCDIR, SSH_MODE.upper()) 
-    os.makedirs(validation_ncdir, exist_ok=True)
-    
     #output validation pdf file
     years, months, days = dates[0].split("-")
     yeare, monthe, daye = dates[-1].split("-")
@@ -218,15 +214,20 @@ def run_validation(dates,oscar_mode):
         drifter_vs_oscar_ds = interpolate_oscar_to_drifters(ds, ds_drifter)
         drifter_vs_oscar_dslist.append(drifter_vs_oscar_ds) # otherwise we keep appending
 
-    validation_ncpath = os.path.join(validation_ncdir,f'drifters_oscar_colocation_{years}{months}{days}_{yeare}{monthe}{daye}_{today}.nc') # for the last month
-    try:
-        pattern = os.path.join(validation_ncdir,f'drifters_oscar_colocation_{years}{months}{days}_{yeare}{monthe}{daye}_*.nc')
-        for file in glob.glob(pattern):
-            os.remove(file) # we remove any previous nc file
-    except OSError: pass
     drifter_vs_oscar_dslist = xr.concat(drifter_vs_oscar_dslist, dim='drifter')
-    drifter_vs_oscar_dslist.to_netcdf(validation_ncpath, mode = 'w')
-    print(f'OSCAR/DRIFTER colocation ncfile saved at: {validation_ncpath}')
+        
+    if SAVE_COLOCATION:
+        #output colocation nc file    
+        validation_ncdir = os.path.join(VALIDATION_NCDIR, SSH_MODE.upper()) 
+        os.makedirs(validation_ncdir, exist_ok=True)
+        validation_ncpath = os.path.join(validation_ncdir,f'drifters_oscar_colocation_{years}{months}{days}_{yeare}{monthe}{daye}_{today}.nc') # for the last month
+        try:
+            pattern = os.path.join(validation_ncdir,f'drifters_oscar_colocation_{years}{months}{days}_{yeare}{monthe}{daye}_*.nc')
+            for file in glob.glob(pattern):
+                os.remove(file) # we remove any previous nc file
+        except OSError: pass
+        drifter_vs_oscar_dslist.to_netcdf(validation_ncpath, mode = 'w')
+        print(f'OSCAR/DRIFTER colocation ncfile saved at: {validation_ncpath}')
         
     corr_map = compute_binned_correlations(
         drifter_vs_oscar_dslist,
@@ -300,6 +301,7 @@ def main():
     print(f'...plotting intermediate checks {DO_CHECKS}') 
     print(f'...plotting daily current maps {PLOT_CURRENTS} in {REGION}') 
     print(f'...validation {DO_VALIDATION}') 
+    print(f'...save colocation files {SAVE_COLOCATION}') 
             
     if OVERWRITE_DOWNLOAD and not OVERWRITE_CURRENT:
         print("\nWARNING!! overwrite_currents cannot be False while overwrite_download is True - EXIT")
@@ -310,6 +312,10 @@ def main():
             
     if not PLOT_CURRENTS and REGION!='global':
         print("\nWARNING!! The region option is only for the currents plotting. For currents computation and validation, use 'global' - EXIT")
+        sys.exit()
+            
+    if SAVE_COLOCATION and not DO_VALIDATION:
+        print("\nWARNING!! Colocation files will not be made and saved if do_validation is False")
         sys.exit()
     
     print("\n\n************************************************")    

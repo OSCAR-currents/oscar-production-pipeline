@@ -11,6 +11,7 @@ OVERWRITE_DOWNLOAD = config['general']['overwrite_download']
 OVERWRITE_CURRENT = config['general']['overwrite_current']
 PLOT_CURRENTS = config['general']['plot_currents']
 DO_VALIDATION = config['general']['do_validation']
+SAVE_COLOCATION = config['general']['do_save_colocation']
 DO_CHECKS = config['general']['do_intermediate_checks']
 
 START_DATE = config["general"]["start_date"]

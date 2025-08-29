@@ -32,6 +32,10 @@ general:
 #will overwrite existing validation pdf for this time range
 #better to run the validation on its own
 
+  do_save_colocation: false 
+#save drifter/Oscar colocation ncfiles
+#do not do anything if do_validation is false
+
   do_eq: true 
 #equatorial treatment for current computation
 
