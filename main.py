@@ -279,12 +279,12 @@ def run_validation(dates,oscar_mode):
 
 def run_download(dates):
 
-    # if SSH_MODE == "cmems":
-    #     download_ssh_cmems(dates)
-    # elif SSH_MODE  == "neurost":
-    #     download_ssh_neurost(dates)
-    # download_wind_era5(dates)
-    # download_sst_cmc(dates)
+    if SSH_MODE == "cmems":
+        download_ssh_cmems(dates)
+    elif SSH_MODE  == "neurost":
+        download_ssh_neurost(dates)
+    download_wind_era5(dates)
+    download_sst_cmc(dates)
     download_drifter_data(dates)
 
     return

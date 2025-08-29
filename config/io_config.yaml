@@ -2,10 +2,8 @@
 
 general:
 
-#  start_date: "1993-01-01"
-#  end_date: "1993-01-31"
-  start_date: "2024-11-01"
-  end_date: "2024-11-30"
+  start_date: "1993-01-01"
+  end_date: "1993-12-31"
 
   ssh_mode: 'cmems' #options: cmems, neurost
 
@@ -28,7 +26,7 @@ general:
 #won't overwrite existing plot unless overwrite_current is true
 #will replace interim plot by final if final current now available
 
-  do_validation: true 
+  do_validation: false 
 #will overwrite existing validation pdf for this time range
 #better to run the validation on its own
 
