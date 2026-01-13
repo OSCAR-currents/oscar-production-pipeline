@@ -2,9 +2,9 @@
 
 The Ocean Surface Current Analyses Real-time (OSCAR) is a NASA funded research project and global surface current database. The OSCAR ocean surface mixed layer velocities are calculated from satellite-sensed sea surface height gradients, ocean vector winds, and sea surface temperature fields using geostrophy, Ekman, and thermal wind dynamics.
 
-See more information on the algorithm here: https://www.esr.org/research/oscar/overview/
+See more information on the algorithm here: https://www.esr.org/data-products/oscar/
 
-Datasets are available on PO.DAAC: https://podaac.jpl.nasa.gov/cloud-datasets?search=oscar
+Datasets are available on PO.DAAC:  https://podaac.jpl.nasa.gov/OSCAR
 
 # Setup Instructions
 
