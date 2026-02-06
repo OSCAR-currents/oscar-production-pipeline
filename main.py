@@ -79,21 +79,21 @@ def run_compute_currents(dates_to_process, oscar_mode):
                     if oscar_mode[d]=='final':
                         outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
                         ssh_long_desc = "CMEMS SSALTO/DUACS SEALEVEL_GLO_PHY_L4_MY_008_047 DOI: 10.48670/moi-00148"
-                        oscar_long_desc = f"Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - {oscar_mode[d].upper()} 0.25 Degree (Version 2.0)"
+                        oscar_long_desc = f"Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - {oscar_mode[d].upper()} 0.125 Degree (Version 3.0)"
                         oscar_summary = "Highest quality OSCAR product."
-                        oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V2.0"
+                        oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V3.0"
                         doi =  "10.5067/OSCAR-25F20"
                     elif oscar_mode[d]=='interim':
                         outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
                         ssh_long_desc = "CMEMS SSALTO/DUACS SEALEVEL_GLO_PHY_L4_NRT_OBSERVATIONS_008_046 DOI: 10.48670/moi-00149"
-                        oscar_long_desc = f"Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - {oscar_mode[d].upper()} 0.25 Degree (Version 2.0)"
+                        oscar_long_desc = f"Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - {oscar_mode[d].upper()} 0.125 Degree (Version 3.0)"
                         oscar_summary = "Lower quality than final currents."
-                        oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V2.0"
+                        oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V3.0"
                         doi =  "10.5067/OSCAR-25I20"
                 elif SSH_MODE == 'neurost':
                     outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
                     ssh_long_desc = "Daily NeurOST L4 Sea Surface Height (NEUROST_SSH-SST_L4_V2024.0) DOI: 10.5067/NEURO-STV24"
-                    oscar_long_desc = "Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - 0.01 Degree (Version 2.0)"
+                    oscar_long_desc = "Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - 0.01 Degree (Version 3.0)"
                     oscar_summary = ""
                     oscar_id = ""
                     doi =  ""
