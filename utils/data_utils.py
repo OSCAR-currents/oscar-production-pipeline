@@ -205,7 +205,7 @@ def write_metadata(refDs,dateDash,Ug,Uw,Ub,FILENM,SSHLONGDESC,WINDLONGDESC,SSTLO
 
     dsOut = xr.Dataset({'u': (['time', 'longitude', 'latitude'], u), 'v': (['time', 'longitude', 'latitude'], v), \
         'ug' : (['time', 'longitude', 'latitude'], ug), 'vg': (['time', 'longitude', 'latitude'], vg), \
-        # 'uw' : (['time', 'longitude', 'latitude'], uw), 'vw': (['time', 'longitude', 'latitude'], vw), \ #add all components
+        'uw' : (['time', 'longitude', 'latitude'], uw), 'vw': (['time', 'longitude', 'latitude'], vw), \
         # 'ub' : (['time', 'longitude', 'latitude'], ub), 'vb': (['time', 'longitude', 'latitude'], vb), \
         }, coords=coords)
 
@@ -220,8 +220,8 @@ def write_metadata(refDs,dateDash,Ug,Uw,Ub,FILENM,SSHLONGDESC,WINDLONGDESC,SSTLO
     
 def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDESC,OSCARSUMMARY,OSCARID,DOI, ssh_mode):
     if ssh_mode == 'cmems':
-        lat_res = '0.25 degree'
-        lon_res = '0.25 degree'
+        lat_res = '0.125 degree'
+        lon_res = '0.125 degree'
     else:
         lat_res = '0.1 degree'
         lon_res = '0.1 degree'
@@ -230,9 +230,9 @@ def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDES
     dsOut.lat.attrs['standard_name'] = 'latitude'
     dsOut.lat.attrs['units'] = 'degrees_north'
     dsOut.lat.attrs['axis'] = 'Y'
-    dsOut.lat.attrs['valid_min'] = -89.75
-    dsOut.lat.attrs['valid_max'] =  89.75
-    dsOut.lat.attrs['bounds'] = '[-89.75,89.75]'
+    dsOut.lat.attrs['valid_min'] = -89.9375
+    dsOut.lat.attrs['valid_max'] =  89.9375
+    dsOut.lat.attrs['bounds'] = '[-89.9375,89.9375]'
 
     # longitude
     dsOut.lon.attrs['long_name'] = 'longitude'
@@ -240,8 +240,8 @@ def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDES
     dsOut.lon.attrs['units'] = 'degrees_east'
     dsOut.lon.attrs['axis'] =  'X'
     dsOut.lon.attrs['valid_min'] = 0.0
-    dsOut.lon.attrs['valid_max'] = 359.75
-    dsOut.lon.attrs['bounds'] = '[0,359.75]'
+    dsOut.lon.attrs['valid_max'] = 359.875
+    dsOut.lon.attrs['bounds'] = '[0,359.875]'
 
     dsOut.time.attrs['long_name'] = 'time centered on the day'
     dsOut.time.attrs['standard_name'] = 'time'
@@ -269,11 +269,21 @@ def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDES
     dsOut.vg.attrs['long_name'] = 'meridional geostrophic surface current'
     dsOut.vg.attrs['standard_name'] = 'geostrophic_northward_sea_water_velocity'
 
+    dsOut.uw.attrs['long_name'] = 'zonal Ekman surface current'
+    dsOut.uw.attrs['standard_name'] = 'ekman_eastward_sea_water_velocity'
+
+    dsOut.vw.attrs['long_name'] = 'meridional Ekman surface current'
+    dsOut.vw.attrs['standard_name'] = 'ekman_northward_sea_water_velocity'
+
     for field in ['ug', 'vg']:
         dsOut[field].attrs['comment'] = 'Geostrophic velocities calculated from absolute dynamic topography'
         dsOut[field].attrs['source'] = 'SSH source: '+SSHLONGDESC
     
-    for field in ['u', 'v', 'ug', 'vg']:
+    for field in ['uw', 'vw']:
+        dsOut[field].attrs['comment'] = 'Wind driven Ekman velocities'
+        dsOut[field].attrs['source'] = 'WIND source: '+WINDLONGDESC
+  
+    for field in ['u', 'v', 'ug', 'vg', 'uw', 'vw']:
         dsOut[field].attrs['units'] = 'm s-1'
         dsOut[field].attrs['valid_min'] = -3.0
         dsOut[field].attrs['valid_max'] = 3.0
@@ -281,18 +291,18 @@ def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDES
     
     # GLOBAL ATTRIBUTES
     dsOut.attrs['title'] = OSCARLONGDESC
-    dsOut.attrs['summary'] = 'Global, daily, 0.25 degree geostrophic and total mixed layer currents averaged over the top 30m. ' + OSCARSUMMARY;
+    dsOut.attrs['summary'] = 'Global, daily, 0.125 degree geostrophic, Ekman, and total mixed layer currents averaged over the top 30m. ' + OSCARSUMMARY;
     dsOut.attrs['keywords'] = 'ocean currents,ocean circulation,surface currents,ekman,geostrophic'
     #dsOut.attrs['keywords_vocabulary'] = 'CF: NetCDF COARDS Climate and Forecast Standard Names'
     dsOut.attrs['Conventions'] = 'CF-1.8 Standard Names v77, ACDD-1.3, netcdf 4.7.3, hdf5 1.8.12'
     dsOut.attrs['id'] = OSCARID
-    dsOut.attrs['history'] = 'OSCAR 0.25 degree daily version 2.0 replaces OSCAR third degree 5 day'
+    dsOut.attrs['history'] = 'OSCAR 0.125 degree daily version 3.0 replaces OSCAR 0.25 degree version 2.0'
     dsOut.attrs['source'] = 'OSCAR is based on simplified physics using satellite data; SSH source: '+SSHLONGDESC+' ; WIND source: '+WINDLONGDESC+' ; SST source: '+SSTLONGDESC
     dsOut.attrs['processing_level'] = 'L4'
     #dsOut.attrs['comment'] = 'RECOMMENDED - Provide useful additional information here'
     dsOut.attrs['standard_name_vocabulary'] = 'NetCDF Climate and Forecast (CF) Metadata Convention'
     dsOut.attrs['acknowledgment'] = 'OSCAR products are supported by NASA and may be freely distributed.'
-    dsOut.attrs['product_version'] = 'v2.0'
+    dsOut.attrs['product_version'] = 'v3.0'
     dsOut.attrs['creator_name'] = 'Kathleen Dohan'
     dsOut.attrs['creator_email'] = 'kdohan@esr.org'
     dsOut.attrs['creator_url'] = 'www.esr.org/research/oscar/'
@@ -307,12 +317,12 @@ def addmetadata(dsOut,dateDash,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDES
     dsOut.attrs['publisher_url'] = 'podaac.jpl.nasa.gov'
     dsOut.attrs['publisher_type'] = 'institution'
     dsOut.attrs['publisher_institution'] = 'PO.DAAC'
-    dsOut.attrs['geospatial_lat_min'] = -89.75
-    dsOut.attrs['geospatial_lat_max'] = 89.75
+    dsOut.attrs['geospatial_lat_min'] = -89.9375
+    dsOut.attrs['geospatial_lat_max'] = 89.9375
     dsOut.attrs['geospatial_lat_units'] = "degrees_north"
     dsOut.attrs['geospatial_lat_resolution'] = lat_res
     dsOut.attrs['geospatial_lon_min'] = 0.0
-    dsOut.attrs['geospatial_lon_max'] = 359.75
+    dsOut.attrs['geospatial_lon_max'] = 359.875
     dsOut.attrs['geospatial_lon_units'] = "degrees_east"
     dsOut.attrs['geospatial_lon_resolution'] = lon_res
     dsOut.attrs['time_coverage_start'] = dateDash + 'T00:00:00'
