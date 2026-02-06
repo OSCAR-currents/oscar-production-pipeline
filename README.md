@@ -4,7 +4,7 @@ The Ocean Surface Current Analyses Real-time (OSCAR) is a NASA funded research p
 
 See more information on the algorithm here: https://www.esr.org/data-products/oscar/
 
-Datasets are available on PO.DAAC:  https://podaac.jpl.nasa.gov/OSCAR
+Datasets are available on PO.DAAC:  https://podaac.jpl.nasa.gov/cloud-datasets?search=oscar
 
 # Setup Instructions
 
