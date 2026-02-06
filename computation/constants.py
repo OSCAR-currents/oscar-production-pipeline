@@ -68,13 +68,13 @@ f = f * FACTOR / (2 * OMEGA)
 
 
 if SSH_MODE == "cmems":
-    spacing = 0.25
+    spacing = 0.125
 elif SSH_MODE == "neurost":
     spacing = 0.1 
 
 
 XOSC = np.arange(0, 360, spacing)
-YOSC = np.arange(-89.75, 90.0, spacing)
+YOSC = np.arange(-89.9375, 90.0625, spacing)
 
 y = YOSC * math.pi / 180
 
