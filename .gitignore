@@ -5,3 +5,15 @@
 #Purpose:
 #The git program is informed here to ignore the following files while performing
 #its distributed revision control and source code management.
+
+# --- Local-only data & outputs (never pushed) ---
+/datasets/
+/plots/
+/pyoscar-main_angelica20250827.zip
+
+# --- Python / OS cruft ---
+__pycache__/
+**/__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
