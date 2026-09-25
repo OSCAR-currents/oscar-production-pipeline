@@ -22,9 +22,9 @@ def run_compute_currents(dates_to_process, oscar_mode):
         datedatetime = datetime.strptime(date, "%Y-%m-%d")
         
         if oscar_mode[d]=='None':
-            print(f"\n---> At least one input file is not available on {date}, we skip that day")
+            print(f"\n---> At least one input file is not available on {date}, we stop the process")
             missingfilesdates.append(date)
-            continue
+            return
         else:
             year  = datetime.strptime(date, "%Y-%m-%d").strftime("%Y")
             month = datetime.strptime(date, "%Y-%m-%d").strftime("%m")
@@ -40,6 +40,7 @@ def run_compute_currents(dates_to_process, oscar_mode):
                 # SSH
                 ssh_ds = load_ds(dates_to_process[d], oscar_mode[d], var='ssh')
                 ssh_ds = interpolate_dataset(ssh_ds)
+
                 if DO_CHECKS:
                     plot_interp(ssh_ds, f'interpolated SSH - {year}{month}{day} (m)', f'interp_ssh_{year}{month}{day}.png', os.path.join(CHECK_DIR,SSH_MODE.upper(),'interpolations'),'ssh',-2,2)
                 ssh_ds = calculate_gradient(ssh_ds, 'ssh')
@@ -58,9 +59,10 @@ def run_compute_currents(dates_to_process, oscar_mode):
                 # Wind
                 wind_ds = load_ds(dates_to_process[d], oscar_mode[d], var='wind')
                 wind_ds = interpolate_dataset(wind_ds)
+
                 if DO_CHECKS:
-                    plot_interp(wind_ds, f'interpolated u winds - {year}{month}{day} (m/s)', f'interp_uwind_{year}{month}{day}.png', os.path.join(CHECK_DIR,SSH_MODE.upper(),'interpolations'),'u10',-15,15)
-                    plot_interp(wind_ds, f'interpolated v winds - {year}{month}{day} (m/s)', f'interp_vwind_{year}{month}{day}.png', os.path.join(CHECK_DIR,SSH_MODE.upper(),'interpolations'),'v10',-15,15)
+                    plot_interp(wind_ds, f'interpolated u {oscar_mode[d]} winds - {year}{month}{day} (m/s)', f'interp_uwind_{year}{month}{day}.png', os.path.join(CHECK_DIR,SSH_MODE.upper(),'interpolations'),'u10',-15,15)
+                    plot_interp(wind_ds, f'interpolated v {oscar_mode[d]} - {year}{month}{day} (m/s)', f'interp_vwind_{year}{month}{day}.png', os.path.join(CHECK_DIR,SSH_MODE.upper(),'interpolations'),'v10',-15,15)
 
                 # Compute and write OSCAR
                 ref_ds = ssh_ds.drop_vars(['sshx', 'sshy'])
@@ -70,7 +72,11 @@ def run_compute_currents(dates_to_process, oscar_mode):
 
                 save_file = f"oscar_currents_{oscar_mode[d]}_"
 
-                wind_long_desc = "ECMWF ERA5 10m wind DOI: 10.24381/cds.adbb2d47"
+                if oscar_mode[d]=='nrt':
+                    wind_long_desc = "KNMI winds from ECMWF, Copernicus WIND_GLO_PHY_L4_NRT_012_004 DOI: 10.48670/moi-00305"
+                else:
+                    wind_long_desc = "ECMWF ERA5 10m wind DOI: 10.24381/cds.adbb2d47"
+
                 if datedatetime < datetime(2016, 1, 1):
                     sst_long_desc =  "CMC 0.2 deg SST V2.0 DOI: 10.5067/GHCMC-4FM02"
                 else:
@@ -90,6 +96,13 @@ def run_compute_currents(dates_to_process, oscar_mode):
                         oscar_summary = "Lower quality than final currents."
                         oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V3.0"
                         doi =  "10.5067/OSCAR-25I20"
+                    elif oscar_mode[d]=='nrt':
+                        outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
+                        ssh_long_desc = "CMEMS SSALTO/DUACS SEALEVEL_GLO_PHY_L4_NRT_OBSERVATIONS_008_046 DOI: 10.48670/moi-00149"
+                        oscar_long_desc = f"Ocean Surface Current Analyses Real-time (OSCAR) Surface Currents - {oscar_mode[d].upper()} 0.125 Degree (Version 3.0)"
+                        oscar_summary = "Lowest quality currents."
+                        oscar_id = f"OSCAR_L4_OC_{oscar_mode[d].upper()}_V3.0"
+                        doi =  "10.5067/OSCAR-25N20"
                 elif SSH_MODE == 'neurost':
                     outputdir = OUTPUT_DIR+f'/{oscar_mode[d].upper()}'
                     ssh_long_desc = "Daily NeurOST L4 Sea Surface Height (NEUROST_SSH-SST_L4_V2024.0) DOI: 10.5067/NEURO-STV24"
@@ -157,7 +170,7 @@ def run_validation(dates,oscar_mode):
     for d in range(0,len(dates)): 
         date=dates[d]
         year, month, day = date.split("-")
-        oscar_file = os.path.join(OUTPUT_DIR,oscar_mode[d],year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc')
+        oscar_file = os.path.join(OUTPUT_DIR,oscar_mode[d].upper(),year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc')
         drifter_file = os.path.join(DRIFTER_SRC_DIR,f'drifter_6hour_qc_{year}{month}.nc')
         if not os.path.isfile(oscar_file):
             print(f'\nWARNING!! Missing OSCAR files to perform the validation - EXIT')
@@ -205,7 +218,7 @@ def run_validation(dates,oscar_mode):
         #interpolate OSCAR on daily drifter    
         ds_drifter = xr.open_dataset(dailyfilename)
     
-        ds = xr.open_dataset(os.path.join(OUTPUT_DIR,oscar_mode[d],year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc'))
+        ds = xr.open_dataset(os.path.join(OUTPUT_DIR,oscar_mode[d].upper(),year,month,f'oscar_currents_{oscar_mode[d]}_{year}{month}{day}.nc'))
         ds = ds.rename({'longitude': 'lon', 'latitude': 'lat'})
         ds = ds.set_coords(['lat', 'lon'])
         u = ds['u'].transpose('time', 'lat', 'lon')
@@ -284,11 +297,16 @@ def run_download(dates):
     elif SSH_MODE  == "neurost":
         download_ssh_neurost(dates)
     download_wind_era5(dates)
+    download_wind_knmi(dates)
     download_sst_cmc(dates)
-    download_drifter_data(dates)
 
     return
 
+def run_download_drifters(dates):
+
+    download_drifter_data(dates)
+
+    return
 
 def main():
     np.seterr(divide='ignore', invalid='ignore', over='ignore')
@@ -349,6 +367,7 @@ def main():
         if len(all_dates) != 0:
             print("\n\n************************************************")
             print("STARTING VALIDATION...\n")
+            run_download_drifters(all_dates)
             oscar_mode = determine_oscar_mode(all_dates, SSH_MODE)
             run_validation(all_dates,oscar_mode)
       
