@@ -10,6 +10,7 @@ from .date_helpers import get_month_info
 
 FINAL_ID   = "cmems_obs-sl_glo_phy-ssh_my_allsat-l4-duacs-0.125deg_P1D"
 INTERIM_ID = "cmems_obs-sl_glo_phy-ssh_nrt_allsat-l4-duacs-0.125deg_P1D"
+KNMI_ID = "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H"
 MIN_BYTES    = 10_000                   # guard against tiny placeholder files
 
 
@@ -137,9 +138,6 @@ def download_ssh_cmems(dates):
             print(f"FINAL not available for {d8}: {e}")
         
 
-        
-
-
 
 # --- NEUROST SSH (PO.DAAC CLI) ---------------------------------------
 
@@ -218,7 +216,7 @@ def download_wind_era5(dates):
         month = dt.strftime("%m")
         day   = dt.strftime("%d")
 
-        out_dir  = os.path.join(WIND_SRC_DIR, year, month)
+        out_dir  = os.path.join(WIND_SRC_FINAL_DIR, year, month)
         os.makedirs(out_dir, exist_ok=True)
         out_file = os.path.join(out_dir, f"era5_{year}{month}{day}.nc")
 
@@ -248,6 +246,59 @@ def download_wind_era5(dates):
         except Exception as e:
             print(f"Failed to download ERA5: {out_file}: {e}")
         print('')
+
+     
+
+# --- KNMI NRT WINDS --------------------------------------------------------
+
+def download_wind_knmi(dates):
+    
+    print('\nDOWNLOADING KNMI WINDS...\n')
+    for d in dates:
+        dt = _coerce_dt(d)
+        y  = dt.strftime("%Y")
+        m  = dt.strftime("%m")
+        d8 = dt.strftime("%Y%m%d")
+
+        knmi_dir   = os.path.join(WIND_SRC_NRT_DIR,   y, m)
+        knmi_file   = os.path.join(knmi_dir,   f"knmi_{d8}.nc")
+    
+        os.makedirs(knmi_dir, exist_ok=True)
+        if _nonempty(knmi_file): #if knmi file already exists 
+            if not OVERWRITE_DOWNLOAD: #and we don't want to overwrite, we skip
+                print(f"KNMI skip (knmi already exists):   {knmi_file}")
+                continue
+
+        # ---- Try knmi first otherwise: if 1. knmi file exists and we want to overwrite; 2. if knmi file doesn't exist
+        tried_knmi = False
+        try:
+            try: os.remove(knmi_file) #if knmi file already exists but we want to overwrite we delete it first
+            except OSError: pass
+            subset(
+                dataset_id=KNMI_ID,
+                variables=[
+                    "eastward_wind","northward_wind"
+                ],
+                minimum_longitude=-179.9375,
+                maximum_longitude= 179.9375,
+                minimum_latitude= -89.9375,
+                maximum_latitude=  89.9375,
+                start_datetime=f"{d8}T00:00:00",
+                end_datetime=f"{d8}T23:00:00",
+                output_directory=knmi_dir,
+                output_filename=f"knmi_{d8}.nc",
+                file_format="netcdf",
+            )
+            if _nonempty(knmi_file):
+                print(f"KNMI saved: {knmi_file}\n")
+                continue
+            else:
+                # clean up tiny/empty, fall through to interim
+                try: os.remove(knmi_file)
+                except OSError: pass
+                print(f"knmi returned empty/invalid file for {d8}")
+        except Exception as e:
+            print(f"KNMI not available for {d8}: {e}. ")
 
 
 # --- CMC SST (PO.DAAC CLI) -------------------------------------------
