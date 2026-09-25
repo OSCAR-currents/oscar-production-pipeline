@@ -31,7 +31,7 @@ def determine_oscar_mode(dates, ssh_mode):
     else:
         raise ValueError(f"ssh_mode must be 'cmems' or 'neurost', got: {ssh_mode}")
 
-    # ---------------- Check SSH, SST, wind files, define mode from SSH ----------------
+    # ---------------- Check SSH, SST, wind files, define mode from SSH and Wind ----------------
     for d in dates:
         nomissingfile=True
         d8 = d.replace("-", "")[:8] # dates are strings; we also need YYYYMMDD for filename matching 
@@ -41,18 +41,28 @@ def determine_oscar_mode(dates, ssh_mode):
             print(f'Missing SST input file on date: {d}\n')
             missing_files.append(f"sst: {SST_SRC_DIR}/**/*{d8}*.nc")
             nomissingfile=False
-        if not exists(WIND_SRC_DIR, d8):
-            print(f'Missing Winds input file on date: {d}\n')
-            missing_files.append(f"wind: {WIND_SRC_DIR}/**/*{d8}*.nc")
+        if  exists(WIND_SRC_FINAL_DIR, d8):
+            wind_mode = "final"
+        elif exists(WIND_SRC_NRT_DIR, d8):
+            wind_mode = "nrt"
+        else:
             nomissingfile=False
+            missing_files.append(f"wind any: for {d8}")
 
         # Check SSH files all here and define mode   
         if not nomissingfile: #if there were SST amd/or wind missing, we put oscar_mode to None
             oscar_mode.append('None')   
         elif exists(SSH_SRC_FINAL_DIR, d8):
-            oscar_mode.append('final')
+            if wind_mode != "final": #Need to have final winds for final oscar
+                oscar_mode.append('None')
+                missing_files.append(f"wind final: for {d8}")
+            else:  
+                oscar_mode.append('final')
         elif exists(SSH_SRC_INTERIM_DIR, d8):
-            oscar_mode.append('interim')
+            if wind_mode == "final":
+                oscar_mode.append('interim')
+            else:
+                oscar_mode.append('nrt')
         else:
             oscar_mode.append('None')
             missing_files.append(f"ssh: for {d8}")
@@ -73,7 +83,8 @@ def get_file_path(date,oscar_mode):
         return os.path.join(OUTPUT_DIR+'/FINAL',str(year),str(month),filename)
     elif oscar_mode == "interim":
         return os.path.join(OUTPUT_DIR+'/INTERIM',str(year),str(month),filename)
-
+    elif oscar_mode == "nrt":
+        return os.path.join(OUTPUT_DIR+'/NRT',str(year),str(month),filename)
 
 def load_ds(date_str, oscar_mode, var):
 
@@ -82,24 +93,29 @@ def load_ds(date_str, oscar_mode, var):
     year = date_obj.strftime("%Y")
     month = date_obj.strftime("%m")
     day_str = date_obj.strftime("%Y%m%d")
-    
+
+    if var == "wind" and oscar_mode == "nrt":
+        var="windnrt"
+
     # Determine source path and file pattern and load a dataset
     if var == "ssh":
         if oscar_mode == "final":
             ssh_src = SSH_SRC_FINAL_DIR
         elif oscar_mode == "interim": 
             ssh_src = SSH_SRC_INTERIM_DIR
-   
+        elif oscar_mode == "nrt": 
+            ssh_src = SSH_SRC_INTERIM_DIR  
         search_dir = os.path.join(ssh_src, year, month)
         pattern = SSH_PATTERN.replace("*", f"{day_str}*")
     elif var == "sst":
         search_dir = os.path.join(SST_SRC_DIR, year, month)
         pattern = f"{day_str}*CMC-L4_GHRSST-SSTfnd*.nc"
-
     elif var == "wind":
-        search_dir = os.path.join(WIND_SRC_DIR, year,month)
-        pattern = WIND_PATTERN.replace("*", f"{day_str}")
-
+        search_dir = os.path.join(WIND_SRC_FINAL_DIR, year,month)
+        pattern = WIND_FINAL_PATTERN.replace("*", f"{day_str}")              
+    elif var == "windnrt":
+        search_dir = os.path.join(WIND_SRC_NRT_DIR, year,month)
+        pattern = WIND_NRT_PATTERN.replace("*", f"{day_str}")      
     else:
         raise ValueError(f"Unsupported variable: {var}")
     
@@ -113,7 +129,6 @@ def load_ds(date_str, oscar_mode, var):
         raise RuntimeError(f"Multiple files found for {var} on {date_str}. Expected only one:\n{matches}")
 
     ds = xr.open_dataset(matches[0])
-
 
     if var == "ssh":
         ds = ds.rename({'adt': 'ssh'})
@@ -130,6 +145,13 @@ def load_ds(date_str, oscar_mode, var):
         ds = ds.rename({'valid_time': 'time'})
         ds = xr.merge([ds['u10'], ds['v10']])
 
+    elif var == "windnrt":
+        ds=ds.transpose('time', 'latitude', 'longitude')
+        ds = ds.rename({'eastward_wind': 'u10'})
+        ds = ds.rename({'northward_wind': 'v10'})
+        ds = xr.merge([ds['u10'], ds['v10']])
+
+
     # === Normalize longitudes ===
     if 'longitude' in ds.coords:
         ds = ds.assign_coords(longitude=(ds.longitude % 360))
@@ -137,7 +159,7 @@ def load_ds(date_str, oscar_mode, var):
 
     if var in ["ssh", "sst"]:
         ds = ds[[var]]
-    elif var == "wind":
+    elif var == "wind" or var == "windnrt":
         ds = ds[["u10", "v10"]]
         ds = ds.resample(time='1D').mean()
 
