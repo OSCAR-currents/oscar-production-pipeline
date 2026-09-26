@@ -7,6 +7,7 @@ import re
 from ..config.setup import *
 from datetime import datetime, timedelta, date
 from ..utils.download import *
+import hashlib
     
 def determine_oscar_mode(dates, ssh_mode):
 
@@ -50,7 +51,7 @@ def determine_oscar_mode(dates, ssh_mode):
             missing_files.append(f"wind any: for {d8}")
 
         # Check SSH files all here and define mode   
-        if not nomissingfile: #if there were SST amd/or wind missing, we put oscar_mode to None
+        if not nomissingfile: #if there were SST and/or wind missing, we put oscar_mode to None
             oscar_mode.append('None')   
         elif exists(SSH_SRC_FINAL_DIR, d8):
             if wind_mode != "final": #Need to have final winds for final oscar
@@ -204,6 +205,40 @@ def write_oscar(refDs,Ug,Uw,Ub,OUTPUTFILE,OUTPUTDIR,SSHLONGDESC,WINDLONGDESC,SST
     
         #display('REMOVING md5sum checksum from WRITE_OSCAR')
         # %eval(['! md5sum ',FILENM,' > ',FILENM,'.md5']) 
+    
+def write_podaac_oscar(refDs,Ug,Uw,Ub,OUTPUTFILE,OUTPUTDIR,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDESC,OSCARSUMMARY,OSCARID,DOI, ssh_mode):
+    for ii in range(len(refDs.time)):
+        dsii=refDs.sel(time=refDs.time[ii])
+        dt = str(dsii.time.to_numpy())
+        dateDash = dt[0:10]
+        year = dateDash[0:4]
+        month = dateDash[5:7]
+        day = dateDash[8:10]  
+       
+        date = year + month + day
+
+        # PODAAC directory structure
+        PODAACDIR = os.path.join(OUTPUTDIR, "PODAAC")
+  
+        if not os.path.exists(PODAACDIR):
+            print("Creating new directory: " + PODAACDIR)
+            os.makedirs(PODAACDIR)
+
+        FILENM = os.path.join(PODAACDIR, OUTPUTFILE + date + '.nc')
+
+        if os.path.exists(FILENM):
+            print("Removing existing file: " + FILENM)
+            os.remove(FILENM)
+
+        write_metadata(dsii,dateDash,Ug[ii,:,:],Uw[ii,:,:],Ub[ii,:,:],FILENM,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDESC,OSCARSUMMARY,OSCARID,DOI, ssh_mode)
+
+        print(f"\n---> Currents file saved at: {FILENM}")
+        print("************************************************")
+
+        create_netcdf_md5(FILENM)
+        #display('REMOVING md5sum checksum from WRITE_OSCAR')
+        # %eval(['! md5sum ',FILENM,' > ',FILENM,'.md5']) 
+
         
         
 def write_metadata(refDs,dateDash,Ug,Uw,Ub,FILENM,SSHLONGDESC,WINDLONGDESC,SSTLONGDESC,OSCARLONGDESC,OSCARSUMMARY,OSCARID,DOI, ssh_mode):
@@ -456,3 +491,30 @@ def get_dates_to_process(start_date, end_date, OUTPUT_DIR, override=False):
         return a, p
     
     
+
+def create_netcdf_md5(nc_file_path):
+    # Ensure the target file exists
+    if not os.path.exists(nc_file_path):
+        print(f"Error: File '{nc_file_path}' not found.")
+        return
+
+    md5_hasher = hashlib.md5()
+    
+    # Read the NetCDF file in binary mode ('rb') using chunks for large files
+    with open(nc_file_path, "rb") as f:
+        # Read in 1MB chunks (1024 * 1024 bytes)
+        for chunk in iter(lambda: f.read(1048576), b""):
+            md5_hasher.update(chunk)
+            
+    hex_digest = md5_hasher.hexdigest()
+    
+    # Define the output .md5 file path
+    md5_file_path = nc_file_path + ".md5"
+    
+    # Format matches the Linux native 'md5sum' output layout: "hash  filename"
+    file_name = os.path.basename(nc_file_path)
+    with open(md5_file_path, "w") as md5_file:
+        md5_file.write(f"{hex_digest}  {file_name}\n")
+        
+    print(f"MD5 checksum saved to: {md5_file_path}")
+
