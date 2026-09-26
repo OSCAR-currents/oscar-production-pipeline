@@ -71,6 +71,7 @@ def run_compute_currents(dates_to_process, oscar_mode):
                 print(f"\n---> Finished computing currents for {dates_to_process[d]}")
 
                 save_file = f"oscar_currents_{oscar_mode[d]}_"
+                save_podaac_file = f"oscar_currents_"
 
                 if oscar_mode[d]=='nrt':
                     wind_long_desc = "KNMI winds from ECMWF, Copernicus WIND_GLO_PHY_L4_NRT_012_004 DOI: 10.48670/moi-00305"
@@ -117,7 +118,10 @@ def run_compute_currents(dates_to_process, oscar_mode):
                                       ssh_long_desc, wind_long_desc, sst_long_desc,
                                       oscar_long_desc, oscar_summary, oscar_id,
                                       doi, SSH_MODE)
-                                  
+                write_podaac_oscar(ref_ds, Ug, Uw, Ub, save_podaac_file, outputdir,
+                        ssh_long_desc, wind_long_desc, sst_long_desc,
+                        oscar_long_desc, oscar_summary, oscar_id,
+                        doi, SSH_MODE)                  
     print(f"\nALL CURRENTS COMPUTATION FOR {dates_to_process[0]} - {dates_to_process[-1]} IS COMPLETED")
     if DO_CHECKS:
         print(f'Interpolation and gradient plots saved in {os.path.join(CHECK_DIR,SSH_MODE.upper())}')
