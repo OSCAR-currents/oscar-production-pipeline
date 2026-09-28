@@ -118,7 +118,7 @@ def run_compute_currents(dates_to_process, oscar_mode):
                                       ssh_long_desc, wind_long_desc, sst_long_desc,
                                       oscar_long_desc, oscar_summary, oscar_id,
                                       doi, SSH_MODE)
-                write_podaac_oscar(ref_ds, Ug, Uw, Ub, save_podaac_file, outputdir,
+                write_podaac_oscar(ref_ds, Ug, Uw, Ub, save_podaac_file, OUTPUT_DIR,
                         ssh_long_desc, wind_long_desc, sst_long_desc,
                         oscar_long_desc, oscar_summary, oscar_id,
                         doi, SSH_MODE)                  
